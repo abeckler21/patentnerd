@@ -19,34 +19,57 @@ INID_CODES = {
 }
 
 # Free-text section headings (these vary by patent)
-TEXT_SECTIONS = [
-    'Background of the Invention',
-    'Summary of the Invention',
-    'Brief Description of the Invention',
-    'Brief Description of the Figures',
-    'Detailed Description of the Invention'
-]
+TEXT_SECTIONS = {
+    'Background of the Invention': ["BACKGROUND", "BACKGROUND OF THE INVENTION"],
+    'Summary of the Invention': ["SUMMARY", "SUMMARY OF THE INVENTION"],
+    'Brief Description of the Invention': ["BRIEF DESCRIPTION OF THE INVENTION"],
+    'Brief Description of the Figures': ["BRIEF DESCRIPTION OF THE DRAWINGS", "BRIEF DESCRIPTION OF THE FIGURES"],
+    'Detailed Description of the Invention': ["DETAILED DESCRIPTION", "DETAILED DESCRIPTION OF THE INVENTION"]
+}
 
 def remove_line_numbers(text):
     """Remove line numbers from patent text."""
     return re.sub(r'^\s*\d+\s+', '', text, flags=re.MULTILINE)
 
 def extract_inid_metadata(first_page_text):
-    """Extract metadata using INID codes."""
+    """Extract metadata using INID codes (wonky with page 1 misalignment)"""
     data = {}
     for key, pattern in INID_CODES.items():
         m = re.search(pattern, first_page_text)
         data[key] = m.group(1).strip() if m else ''
     return data
 
-def extract_text_sections(full_text):
-    """Extract text for known sections."""
-    data = {}
-    for i, section in enumerate(TEXT_SECTIONS):
-        pat = rf"{re.escape(section)}\s*(.*?)(?=\n(?:{'|'.join(map(re.escape, TEXT_SECTIONS[i+1:]))})|\Z)"
-        m = re.search(pat, full_text, flags=re.S | re.I)
-        data[section.lower().replace(' ', '_')] = m.group(1).strip() if m else ''
-    return data
+def extract_text_sections(full_text: str):
+    """Extract relevant sections from the text"""
+    # Normalize spacing, capture and split headers
+    text = re.sub(r'\s+', ' ', full_text)
+    section_patterns = []
+    for canon, variants in TEXT_SECTIONS.items():
+        for v in variants:
+            section_patterns.append(re.escape(v))
+    section_regex = r'(' + '|'.join(section_patterns) + r')'
+    parts = re.split(section_regex, text)
+
+    # Extract text
+    sections = {}
+    current_header = None
+    for part in parts:
+        if not part.strip():
+            continue
+        # If part is a header
+        for canon, variants in TEXT_SECTIONS.items():
+            if part.upper() in [v.upper() for v in variants]:
+                current_header = canon
+                sections[current_header] = ""
+                break
+        else:
+            # Otherwise, treat as body text
+            if current_header:
+                sections[current_header] += part.strip() + " "
+
+    # Strip trailing spaces
+    return {k: v.strip() for k, v in sections.items()}
+        
 
 def extract_claims(full_text):
     """Find the last '1.' numbered list and grab until end."""
@@ -98,42 +121,24 @@ def extract_patent_sections(pdf_path):
         f.write(cleaned_full_text_to_save)
     """
 
-    # Load text from file
+    # Load text from file and fix line spacing
     with open(f"cleaned_{fname}.txt", "r", encoding="utf-8") as f:
         cleaned_full_text = f.read()
-
-        # Replace single newlines with a space, but keep double newlines
         cleaned_full_text_condensed = cleaned_full_text.replace("\r\n", "\n")
-
-        #   Replace single newlines that are not part of double newlines
         cleaned_full_text_condensed = re.sub(r'(?<!\n)\n(?!\n)', ' ', cleaned_full_text_condensed)
 
-    # 1. Metadata
+    # 1. Get first page metadata
     data = extract_inid_metadata(cleaned_full_text_condensed)
-    print(data)
 
-    # # 2. Descriptive sections
-    # section_data = extract_text_sections(cleaned_full_text)
-    # data.update(section_data)
+    # 2. Get sections
+    section_data = extract_text_sections(cleaned_full_text_condensed)
+    data.update(section_data)
 
-    # # 3. Claims
-    # data['claims'] = extract_claims(full_text)
+    # 3. Claims
+    data['claims'] = extract_claims(cleaned_full_text_condensed)
 
-    # # Print in sequence
-    # output_order = [
-    #     'abstract', 'priority_claim',
-    #     'background_of_the_invention', 'summary_of_the_invention',
-    #     'brief_description_of_the_invention', 'brief_description_of_the_figures',
-    #     'detailed_description_of_the_invention', 'inventor',
-    #     'application_number', 'patent_number', 'title',
-    #     'issue_date', 'assignee', 'claims'
-    # ]
-    # for key in output_order:
-    #     print(f"{key.replace('_', ' ').title()}:\n{data.get(key, '')}\n{'-'*60}")
+    return data
 
-    # return data
-
-# Example usage:
+# SAMPLE PATENT USAGE: 
 fname = "8825984.pdf"
 extract_patent_sections(fname)
-# extract_patent_sections("/mnt/data/7885983.pdf")
