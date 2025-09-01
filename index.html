@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PATENTNERD</title>
+</head>
+<body>
+    <h1>PATENTNERD</h1>
+
+    <input type="file" id="pdfInput" accept=".pdf">
+    <button onclick="uploadPDF()">Upload PDF</button>
+
+    <h2 id="fileName"></h2>
+    <pre id="output"></pre>
+
+    <script>
+        async function uploadPDF() {
+            const fileInput = document.getElementById('pdfInput');
+            const output = document.getElementById('output');
+            const fileNameHeader = document.getElementById('fileName');
+
+            if (!fileInput.files.length) return alert("Select a PDF first");
+
+            // Clear previous output
+            output.textContent = "";
+            fileNameHeader.textContent = "";
+
+            const file = fileInput.files[0];
+            fileNameHeader.textContent = `File: ${file.name}`;
+
+            const formData = new FormData();
+            formData.append("pdf_file", file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const text = await response.text();
+                output.textContent = text;
+            } else {
+                output.textContent = "Error uploading PDF.";
+            }
+        }
+    </script>
+</body>
+</html>

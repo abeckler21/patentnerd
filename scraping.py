@@ -104,7 +104,7 @@ def get_pdf_text(pdf_path):
 
     return full_text, first_page_text
 
-def extract_patent_sections(pdf_path):
+def extract_patent_sections(fname):
     """Main function to extract all required sections."""
 
     """ 
@@ -138,7 +138,3 @@ def extract_patent_sections(pdf_path):
     data['claims'] = extract_claims(cleaned_full_text_condensed)
 
     return data
-
-# SAMPLE PATENT USAGE: 
-fname = "8825984.pdf"
-extract_patent_sections(fname)
