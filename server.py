@@ -20,14 +20,30 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 file_item = form['pdf_file']
                 if file_item.filename:
-                    filepath = os.path.join(UPLOAD_FOLDER, os.path.basename(file_item.filename))
-                    with open(filepath, 'wb') as f:
-                        f.write(file_item.file.read())
-                    
-                    # Call your scraping function
-                    full_text, _ = get_pdf_text(filepath)
+                    # Set file paths
+                    filename = os.path.basename(file_item.filename)
+                    filepath_pdf = os.path.join(UPLOAD_FOLDER, filename)
+                    filepath_txt = os.path.join(UPLOAD_FOLDER, f"{filename}.txt")
+
+                    # Check if TXT already exists
+                    if os.path.exists(filepath_txt):
+                        # Read text from existing TXT file
+                        with open(filepath_txt, 'r', encoding='utf-8') as f:
+                            full_text = f.read()
+                    else:
+                        # Save uploaded PDF
+                        with open(filepath_pdf, 'wb') as f:
+                            f.write(file_item.file.read())
+                        # Extract text from PDF
+                        full_text, _ = get_pdf_text(filepath_pdf)
+                        # Save text to TXT file
+                        with open(filepath_txt, 'w', encoding='utf-8') as f:
+                            f.write(full_text)
+
+                    # Extract claims
                     claims = extract_claims(full_text)
 
+                    # Send response
                     self.send_response(200)
                     self.send_header("Content-type", "text/plain; charset=utf-8")
                     self.end_headers()
