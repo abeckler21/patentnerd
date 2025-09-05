@@ -88,18 +88,17 @@ def pdf_to_text_ocr(pdf_path):
         for img in images:
             page_text = pytesseract.image_to_string(img)
             text_pages.append(page_text)
-    return "\n".join(text_pages), text_pages[0] if text_pages else ""
+    return "\n".join(text_pages)
 
 def get_pdf_text(pdf_path):
     """Try pdfplumber first; if no text found, use OCR."""
     with pdfplumber.open(pdf_path) as pdf:
         pages = [page.extract_text() or '' for page in pdf.pages]
     full_text = "\n".join(pages)
-    first_page_text = pages[0] if pages else ""
 
     # Check if we actually got text (not just whitespace)
     if len(full_text.strip()) < 50:
         print(f"[INFO] No readable text found in {pdf_path}. Using OCR...")
-        full_text, first_page_text = pdf_to_text_ocr(pdf_path)
+        full_text = pdf_to_text_ocr(pdf_path)
 
     return full_text

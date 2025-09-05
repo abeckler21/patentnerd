@@ -11,11 +11,8 @@ import pdfplumber
 import pytesseract
 from pdf2image import convert_from_path
 
-# Set the working directory to the project root (Code directory)
-# os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-from Code.base.clause_comparison import clause_comparison
 from Code.base.scraping import get_pdf_text, extract_claims
+from Code.base.patent_logic import analyze_claims
 
 app = Flask(__name__, template_folder = 'ui/templates')
 
@@ -49,43 +46,31 @@ def analyze():
     try:
         # Input validation
         patent_file = request.files.get('patent')
+        if not patent_file:
+            return jsonify({"error": "No file uploaded"}), 400
 
         # File handling
-        patent_path = None
-        if patent_file and allowed_file(patent_file.filename):
-            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-            patent_filename = secure_filename(patent_file.filename)
-            patent_path = os.path.join(app.config['UPLOAD_FOLDER'], patent_filename)
-            patent_file.save(patent_path)
-            print(f"Processing patent: {patent_path}")
-        
-        patent_text = get_pdf_text(patent_file)
+        upload_path = os.path.join("uploads", patent_file.filename)
+        patent_file.save(upload_path)
+
+        # Extract text and claims
+        print(f"Processing patent: {upload_path}")
+        patent_text = get_pdf_text(upload_path)
         claims = extract_claims(patent_text)
-        print(claims)
 
-        # Prepare legal references
-    #     legal_resources = {
-    #         'regulations': os.path.join(project_root, 'Data', 'Regulations',
-    #                                     patent_type, jurisdiction, 'regulations.pdf'),
-    #         'risky_clauses': os.path.join(project_root, 'Data', 'Risky Clauses',
-    #                                       patent_type, jurisdiction, 'risky_clauses.txt')
-    #     }
-
-    #     # Enhanced analysis pipeline
-    #     analysis_start = time.time()
-    #     final_evaluation = clause_comparison(
-    #         patent_path = patent_path,
-    #         law_path      = legal_resources['regulations'],
-    #         risky_clauses = legal_resources['risky_clauses'],
-    #         model         = 'Meta-Llama-3.3-70B-Instruct',
-    #         role          = "user",
-    #         api_key       = "893bd5f1-b41e-4d17-ab1d-3ee3c7cba82b",
-    #         api_base      = "https://api.sambanova.ai/v1",
-    #         temperature   = 0.1,
-    #         top_p         = 0.1,
-    #         max_tokens    = 8192
-    #     )
-    #     print(f"Analysis completed in {time.time() - analysis_start:.2f}s")
+        # Enhanced analysis pipeline
+        analysis_start = time.time()
+        final_evaluation = analyze_claims(
+            claims_text = claims,
+            model         = 'Meta-Llama-3.3-70B-Instruct',
+            role          = "user",
+            api_key       = "893bd5f1-b41e-4d17-ab1d-3ee3c7cba82b",
+            api_base      = "https://api.sambanova.ai/v1",
+            temperature   = 0.1,
+            top_p         = 0.1,
+            max_tokens    = 8192
+        )
+        print(f"Analysis completed in {time.time() - analysis_start:.2f}s")
 
     #     # Parse enhanced output format
     #     clauses = []
