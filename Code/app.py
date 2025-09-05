@@ -54,9 +54,9 @@ def analyze():
         patent_file.save(upload_path)
 
         # Extract text and claims
-        print(f"Processing patent: {upload_path}")
         patent_text = get_pdf_text(upload_path)
         claims = extract_claims(patent_text)
+        print('we got claims')
 
         # Enhanced analysis pipeline
         analysis_start = time.time()
@@ -71,6 +71,8 @@ def analyze():
             max_tokens    = 8192
         )
         print(f"Analysis completed in {time.time() - analysis_start:.2f}s")
+        print(final_evaluation)
+        return jsonify(final_evaluation)
 
     #     # Parse enhanced output format
     #     clauses = []

@@ -34,7 +34,7 @@ def analyze_claims(claims_text, model, role, api_base, api_key, temperature, top
                 top_p=top_p,
                 max_tokens=max_tokens,
             )
-            results[prompt_name] = response.choices[0].message["content"].strip()
+            results[prompt_name] = response.choices[0].message.content
 
         except Exception as e:
             results[prompt_name] = f"Error: {e}"
