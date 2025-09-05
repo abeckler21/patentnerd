@@ -20,5 +20,5 @@ Whether a patent has achieved these three objectives is often tested in the cour
 
 ### Usage
 1. Start the back-end API:
-   - python Code/app.py
+   - python Code/app.py (or python3 -m Code.app)
 2.  Open the front-end UI in a browser
